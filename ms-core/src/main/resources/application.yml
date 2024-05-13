@@ -3,3 +3,38 @@ server:
 spring:
   application:
     name: ms-core
+  redis:
+    host: localhost
+    port: 6379
+    password: redis
+config:
+  aws:
+    access-key: test
+    secret-key: test
+    region: us-east-1
+  dynamodb:
+    configure: true
+    endpoint: http://localhost:8000
+    region: us-west-1
+    access-key: test
+    secret-key: test
+    tables:
+      urls:
+        name: urls
+        read: 10
+        write: 10
+        indexes:
+          shorturl:
+            read: 5
+            write: 5
+          longurl:
+            read: 5
+            write: 5
+          userid:
+            read: 5
+            write: 5
+      users:
+        name: users
+        read: 5
+        write: 5
+
