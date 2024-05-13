@@ -1,5 +1,23 @@
 server:
   port: 8081
+  error:
+    include-stacktrace: never
 spring:
   application:
     name: ms-redirect
+  redis:
+    host: localhost
+    port: 6379
+    password: redis
+config:
+  application:
+    x-api-key: test-ms-redirect
+    cache:
+      # time in minutes
+      get-url-expire-time: 720
+  aws:
+    access-key: test
+    secret-key: test
+    region: us-east-1
+  dynamodb:
+    endpoint: http://localhost:8000
