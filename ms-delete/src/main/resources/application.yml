@@ -1,5 +1,16 @@
 server:
   port: 8083
+  error:
+    include-stacktrace: never
 spring:
   application:
     name: ms-delete
+config:
+  application:
+    x-api-key: test-ms-delete
+  aws:
+    access-key: test
+    secret-key: test
+    region: us-east-1
+  dynamodb:
+    endpoint: http://localhost:8000
