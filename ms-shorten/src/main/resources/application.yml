@@ -1,5 +1,24 @@
 server:
   port: 8082
+  error:
+    include-stacktrace: never
 spring:
   application:
     name: ms-shorten
+  redis:
+    host: localhost
+    port: 6379
+    password: redis
+config:
+  application:
+    x-api-key: test-ms-shorten
+    short-url-length: 6
+    cache:
+      # time in minutes
+      new-url-expire-time: 720
+  aws:
+    access-key: test
+    secret-key: test
+    region: us-east-1
+  dynamodb:
+    endpoint: http://localhost:8000
