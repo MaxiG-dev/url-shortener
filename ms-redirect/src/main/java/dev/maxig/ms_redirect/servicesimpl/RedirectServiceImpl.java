@@ -24,15 +24,13 @@ public class RedirectServiceImpl implements RedirectService {
 
     @Override
     @Async("asyncExecutor")
-    public CompletableFuture<String> getLongUrl(String shortUrl, boolean redirect) {
+    public CompletableFuture<String> getLongUrl(String shortUrl) {
         CompletableFuture<String> future = new CompletableFuture<>();
         try {
             Object redisLongUrl = redisRepository.get(shortUrl);
             if (redisLongUrl != null) {
                 future.complete(redisLongUrl.toString());
-                if (redirect) {
-                    updateUrlCount(shortUrl);
-                }
+                updateUrlCount(shortUrl);
                 return future;
             }
 
@@ -45,9 +43,7 @@ public class RedirectServiceImpl implements RedirectService {
             if (DynamoUrl != null) {
                 future.complete(DynamoUrl);
                 redisRepository.save(shortUrl, DynamoUrl);
-                if (redirect) {
-                    updateUrlCount(shortUrl);
-                }
+                updateUrlCount(shortUrl);
                 return future;
             }
 
