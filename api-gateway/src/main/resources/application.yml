@@ -1,0 +1,95 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: api-gateway
+  main:
+    web-application-type: reactive
+  cloud:
+    gateway:
+      routes:
+        - id: ms-shorten
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/v1/shorten/**
+          filters:
+            - AddRequestHeader=X-API-KEY, test-ms-shorten
+#        - id: ms-redirect
+#          uri: http://localhost:8081
+#          predicates:
+#            - Path=/api/v1/redirect/**
+#          filters:
+#            - AddRequestHeader=X-API-KEY, test-ms-redirect
+#            - RewriteResponseBody=REGEX, (.*), "redirect:${body}"
+        - id: ms-delete
+          uri: http://localhost:8083
+          predicates:
+            - Path=/api/v1/delete/**
+          filters:
+            - AddRequestHeader=X-API-KEY, test-ms-delete
+        - id: ms-info
+          uri: http://localhost:8084
+          predicates:
+            - Path=/api/v1/info/**
+          filters:
+            - AddRequestHeader=X-API-KEY, test-ms-info
+        - id: ms-auth
+          uri: http://localhost:8085
+          predicates:
+            - Path=/api/v1/auth/**
+          filters:
+            - AddRequestHeader=X-API-KEY, test-ms-auth
+        - id: ms-user
+          uri: http://localhost:8086
+          predicates:
+            - Path=/api/v1/user/**
+          filters:
+            - AddRequestHeader=X-API-KEY, test-ms-user
+  redis:
+    host: localhost
+    port: 6379
+    password: redis
+config:
+  application:
+    cache:
+      load-urls-in-cache: true
+      # time in minutes
+      urls-expire-time: 720
+      save-urls-limit: 20000
+    x-api-key:
+        ms-shorten: test-ms-shorten
+        ms-redirect: test-ms-redirect
+        ms-delete: test-ms-delete
+        ms-info: test-ms-info
+        ms-auth: test-ms-auth
+        ms-user: test-ms-user
+  aws:
+    access-key: test
+    secret-key: test
+    region: us-east-1
+  dynamodb:
+    configure: true
+    endpoint: http://localhost:8000
+    region: us-west-1
+    access-key: test
+    secret-key: test
+    tables:
+      urls:
+        name: urls
+        read: 10
+        write: 10
+        indexes:
+          createdAt:
+            read: 5
+            write: 5
+          userid:
+            read: 10
+            write: 10
+      users:
+        name: users
+        read: 5
+        write: 5
+      stats:
+        name: stats
+        read: 5
+        write: 5
