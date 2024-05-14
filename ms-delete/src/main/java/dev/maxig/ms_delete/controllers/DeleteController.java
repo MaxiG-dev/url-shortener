@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.concurrent.CompletableFuture;
 
 @RestController
+@RequestMapping("/api/v1/delete/")
 public class DeleteController {
     @Value("${config.application.x-api-key}")
     private String configApiKey;
@@ -17,7 +18,7 @@ public class DeleteController {
     @Autowired
     private DeleteService service;
 
-    @DeleteMapping("/api/v1/{shortUrl}")
+    @DeleteMapping("{shortUrl}")
     public CompletableFuture<ResponseEntity<String>> get(@PathVariable String shortUrl, @RequestHeader("x-api-key") String apikey) {
         if (apikey == null || !apikey.equals(configApiKey)) {
             return CompletableFuture.completedFuture(ResponseEntity.status(403).build());
