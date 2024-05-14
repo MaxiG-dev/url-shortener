@@ -22,4 +22,9 @@ public class RedisRepository {
     public Object get(String key) {
         return redisTemplate.opsForValue().get(key);
     }
+
+    public void deleteFromNotFoundedUrls(String key) {
+        redisTemplate.opsForValue().getAndDelete("notFoundedUrl-(" + key + ")");
+    }
+
 }

@@ -42,7 +42,7 @@ public class DynamoRepository {
                 .build();
     }
 
-    public void saveUrlToDynamoDB(String shortUrl, String longUrl, String userId) {
+    public boolean saveUrlToDynamoDB(String shortUrl, String longUrl, String userId) {
         Map<String, AttributeValue> item = new HashMap<>();
         item.put("shortId", AttributeValue.builder().s(shortUrl).build());
         item.put("longUrl", AttributeValue.builder().s(longUrl).build());
@@ -60,7 +60,39 @@ public class DynamoRepository {
                             .conditionExpression("attribute_not_exists(shortId)")
                             .build()
             );
+            return true;
         } catch (ConditionalCheckFailedException ignored) {
+            return false;
         }
     }
+
+    public void updateStats() {
+        int retryCount = 0;
+        int delay = 0;
+        while (retryCount <= 3) {
+            try {
+                Thread.sleep(delay);
+                updateUrlsCount();
+                break;
+            } catch (Exception e) {
+                delay = (int) Math.pow(2, retryCount) * 100;
+                retryCount++;
+            }
+        }
+    }
+
+    private void updateUrlsCount() {
+        Map<String, AttributeValue> key = new HashMap<>();
+        key.put("statName", AttributeValue.builder().s("globalStats").build());
+
+        UpdateItemRequest request = UpdateItemRequest.builder()
+                .tableName("stats")
+                .key(key)
+                .updateExpression("ADD urlsCount :val")
+                .expressionAttributeValues(Map.of(":val", AttributeValue.builder().n("1").build()))
+                .build();
+
+        dynamoDbClient.updateItem(request);
+    }
+
 }

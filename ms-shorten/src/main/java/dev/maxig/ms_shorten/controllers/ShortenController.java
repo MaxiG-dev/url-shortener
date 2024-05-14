@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.concurrent.CompletableFuture;
 
 @RestController
+@RequestMapping("/api/v1/shorten")
 public class ShortenController {
     @Value("${config.application.x-api-key}")
     private String configApiKey;
@@ -19,7 +20,7 @@ public class ShortenController {
     @Autowired
     private ShortenService service;
 
-    @PostMapping("/api/v1/shorten")
+    @PostMapping()
     @ResponseStatus(HttpStatus.CREATED)
     public CompletableFuture<ResponseEntity<String>> shorten(@RequestBody CreateUrlDTO createUrlDTO, @RequestHeader("x-api-key") String apikey) {
         if (apikey == null || !apikey.equals(configApiKey)) {

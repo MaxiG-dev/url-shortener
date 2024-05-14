@@ -42,32 +42,39 @@ public class ShortenServiceImpl implements ShortenService {
                 String longUrl = createUrlDTO.getLongUrl();
                 String userId = createUrlDTO.getUserId();
 
-                Object foundUrl = redisRepository.get(shortUrl);
+                Object urlInRedis = redisRepository.get(shortUrl);
 
-                while (foundUrl != null) {
+                while (urlInRedis != null) {
                     shortUrl = shortenUrl.generate();
-                    foundUrl = redisRepository.get(shortUrl);
+                    urlInRedis = redisRepository.get(shortUrl);
+                }
+
+                boolean savedUrlSuccess = dynamoRepository.saveUrlToDynamoDB(shortUrl, longUrl, userId);
+
+                while (!savedUrlSuccess) {
+                    shortUrl = shortenUrl.generate();
+                    savedUrlSuccess = dynamoRepository.saveUrlToDynamoDB(shortUrl, longUrl, userId);
                 }
 
                 redisRepository.save(shortUrl, longUrl);
+                redisRepository.deleteFromNotFoundedUrls(shortUrl);
                 future.complete(shortUrl);
 
-                saveInDatabase(shortUrl, longUrl, userId);
-
+                updateStats();
             } catch (Exception e) {
                 future.completeExceptionally(e);
             }
             return future;
         }
 
-    @Async("asyncExecutor")
-    protected void saveInDatabase(String shortUrl, String longUrl, String userId) {
-        CompletableFuture.runAsync(() -> {
-            try {
-                dynamoRepository.saveUrlToDynamoDB(shortUrl, longUrl, userId);
-            } catch (Exception e) {
-                System.err.println("Failed to save URL to DynamoDB: " + e.getMessage());
-            }
-        });
-    }
+        @Async("asyncExecutor")
+        protected void updateStats() {
+            CompletableFuture.runAsync(() -> {
+                try {
+                    dynamoRepository.updateStats();
+                } catch (Exception e) {
+                    System.err.println("Failed to update stats: " + e.getMessage());
+                }
+            });
+        }
 }
