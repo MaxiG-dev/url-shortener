@@ -8,6 +8,19 @@ spring:
     port: 6379
     password: redis
 config:
+  application:
+    cache:
+      load-urls-in-cache: true
+      # time in minutes
+      urls-expire-time: 720
+      save-urls-limit: 20000
+    x-api-key:
+        ms-shorten: test-ms-shorten
+        ms-redirect: test-ms-redirect
+        ms-delete: test-ms-delete
+        ms-info: test-ms-info
+        ms-auth: test-ms-auth
+        ms-user: test-ms-user
   aws:
     access-key: test
     secret-key: test
@@ -24,17 +37,17 @@ config:
         read: 10
         write: 10
         indexes:
-          shorturl:
-            read: 5
-            write: 5
-          longurl:
+          createdAt:
             read: 5
             write: 5
           userid:
-            read: 5
-            write: 5
+            read: 10
+            write: 10
       users:
         name: users
         read: 5
         write: 5
-
+      stats:
+        name: stats
+        read: 5
+        write: 5

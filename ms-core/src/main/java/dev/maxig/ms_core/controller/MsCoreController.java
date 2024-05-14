@@ -1,19 +1,31 @@
 package dev.maxig.ms_core.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.servlet.view.RedirectView;
+import reactor.core.publisher.Mono;
 
-@Controller
+@RestController
+@RequiredArgsConstructor
 public class MsCoreController {
 
-    private final RestTemplate restTemplate;
+    private final WebClient webClient;
 
-    public MsCoreController(RestTemplate restTemplate) {
-        this.restTemplate = restTemplate;
-    }
+    @Value("${config.application.x-api-key.ms-shorten}")
+    private String msShortenApiKey;
+    @Value("${config.application.x-api-key.ms-redirect}")
+    private String msRedirectApiKey;
+    @Value("${config.application.x-api-key.ms-delete}")
+    private String msDeleteApiKey;
+    @Value("${config.application.x-api-key.ms-info}")
+    private String msInfoApiKey;
+    @Value("${config.application.x-api-key.ms-auth}")
+    private String msAuthApiKey;
+    @Value("${config.application.x-api-key.ms-user}")
+    private String msUserApiKey;
 
     @GetMapping("/api/v1/health")
     @ResponseBody
@@ -21,19 +33,32 @@ public class MsCoreController {
         return "Service available!";
     }
 
-    @GetMapping("/api/v1/{shortUrl}")
-    @ResponseBody
-    public String get(@PathVariable String shortUrl) {
-        String url = "http://localhost:8081/api/v1/" + shortUrl;
-        String longUrl = restTemplate.getForObject(url, String.class);
-        return longUrl;
+    @GetMapping("/api/v1/info/{shortUrl}")
+    public Mono<String> get(@PathVariable String shortUrl) {
+        try {
+            var test = webClient.get()
+                    .uri("http://localhost:8084/api/v1/info/" + shortUrl)
+                    .header("x-api-key", msInfoApiKey)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .doOnError(error -> System.out.println("Error during WebClient call: " + error.getMessage()))
+                    .onErrorResume(WebClientResponseException.NotFound.class, ex -> Mono.just("URL not found - handled gracefully."));
+            return test;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return Mono.just("Error");
     }
-
 
     @GetMapping("/{shortUrl}")
-    public RedirectView redirect(@PathVariable String shortUrl) {
-        String url = "http://localhost:8081/api/v1/" + shortUrl;
-        String longUrl = restTemplate.getForObject(url, String.class);
-        return new RedirectView(longUrl);
+    public Mono<RedirectView> redirect(@PathVariable String shortUrl) {
+        return webClient.get()
+                .uri("http://localhost:8081/api/v1/" + shortUrl)
+                .header("x-api-key", msRedirectApiKey)
+                .retrieve()
+                .bodyToMono(String.class)
+                .map(RedirectView::new);
+
     }
+
 }
