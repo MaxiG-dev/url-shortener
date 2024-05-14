@@ -61,57 +61,61 @@ public class DynamoRepository {
     }
 
     public void updateUrlCountFromDynamoDB(String shortUrl) {
-        Map<String, AttributeValue> key = new HashMap<>();
-        key.put("shortId", AttributeValue.builder().s(shortUrl).build());
+        int retryCount = 0;
+        int delay = 0;
+        while (retryCount <= 3) {
+            try {
+                Thread.sleep(delay);
+                updateCounts(shortUrl);
+                break;
+            } catch (Exception e) {
+                delay = (int) Math.pow(2, retryCount) * 100;
 
-        GetItemRequest request = GetItemRequest.builder()
-                .tableName("urls")
-                .key(key)
-                .build();
-
-        GetItemResponse getItemRequest = dynamoDbClient.getItem(request);
-        if (getItemRequest.item() == null) {
-            return;
+                retryCount++;
+            }
         }
-
-        int accessCount = Integer.parseInt(getItemRequest.item().get("accessCount").n());
-        accessCount++;
-
-        Map<String, AttributeValueUpdate> attributeUpdates = new HashMap<>();
-        attributeUpdates.put("accessCount", AttributeValueUpdate.builder().value(AttributeValue.builder().n(String.valueOf(accessCount)).build()).build());
-        attributeUpdates.put("updatedAt", AttributeValueUpdate.builder().value(AttributeValue.builder().n(String.valueOf(System.currentTimeMillis())).build()).build());
-
-        dynamoDbClient.updateItem(
-                UpdateItemRequest.builder()
-                        .tableName("urls")
-                        .key(key)
-                        .attributeUpdates(attributeUpdates)
-                        .build()
-        );
     }
 
-    public void deleteUrlFromDynamoDB(String shortUrl) {
+    private void updateUrlCount(String shortUrl) {
         Map<String, AttributeValue> key = new HashMap<>();
         key.put("shortId", AttributeValue.builder().s(shortUrl).build());
 
-        GetItemRequest request = GetItemRequest.builder()
+        UpdateItemRequest updateItemRequest = UpdateItemRequest.builder()
                 .tableName("urls")
                 .key(key)
+                .updateExpression("ADD accessCount :val")
+                .expressionAttributeValues(Map.of(":val", AttributeValue.builder().n("1").build()))
                 .build();
 
-        GetItemResponse getItemRequest = dynamoDbClient.getItem(request);
-        if (getItemRequest.item() == null) {
-            return;
-        }
+        dynamoDbClient.updateItem(updateItemRequest);
+    }
 
-        Map<String, AttributeValue> item = getItemRequest.item();
-        item.put("deletedAt", AttributeValue.builder().n(String.valueOf(System.currentTimeMillis())).build());
 
-        dynamoDbClient.putItem(
-                PutItemRequest.builder()
-                        .tableName("urls")
-                        .item(item)
-                        .build()
-        );
+    public void updateCounts(String shortUrl) {
+        Map<String, AttributeValue> urlKey = new HashMap<>();
+        urlKey.put("shortId", AttributeValue.builder().s(shortUrl).build());
+        Update updateUrlCount = Update.builder()
+                .tableName("urls")
+                .key(urlKey)
+                .updateExpression("ADD accessCount :val")
+                .expressionAttributeValues(Map.of(":val", AttributeValue.builder().n("1").build()))
+                .build();
+
+
+        Map<String, AttributeValue> statsKey = new HashMap<>();
+        statsKey.put("statName", AttributeValue.builder().s("globalStats").build());
+        Update updateRedirectsCount = Update.builder()
+                .tableName("stats")
+                .key(statsKey)
+                .updateExpression("ADD urlsRedirect :val")
+                .expressionAttributeValues(Map.of(":val", AttributeValue.builder().n("1").build()))
+                .build();
+
+        TransactWriteItemsRequest transactionRequest = TransactWriteItemsRequest.builder()
+                .transactItems(TransactWriteItem.builder().update(updateUrlCount).build(),
+                        TransactWriteItem.builder().update(updateRedirectsCount).build())
+                .build();
+
+        dynamoDbClient.transactWriteItems(transactionRequest);
     }
 }
