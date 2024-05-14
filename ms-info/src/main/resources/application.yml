@@ -1,5 +1,19 @@
 server:
   port: 8084
+  error:
+    include-stacktrace: never
 spring:
   application:
     name: ms-info
+config:
+  application:
+    x-api-key: test-ms-info
+    cache:
+      # time in minutes
+      get-url-expire-time: 720
+  aws:
+    access-key: test
+    secret-key: test
+    region: us-east-1
+  dynamodb:
+    endpoint: http://localhost:8000
