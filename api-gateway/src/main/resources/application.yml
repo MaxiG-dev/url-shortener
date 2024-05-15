@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 80
 spring:
   application:
     name: api-gateway
@@ -9,47 +9,53 @@ spring:
     gateway:
       routes:
         - id: ms-shorten
-          uri: http://localhost:8082
+          uri: lb://ms-shorten
           predicates:
-            - Path=/api/v1/shorten/**
+            - Path=/api/v1/shorten/**, /actuator/shorten/**
           filters:
             - AddRequestHeader=X-API-KEY, test-ms-shorten
-#        - id: ms-redirect
-#          uri: http://localhost:8081
-#          predicates:
-#            - Path=/api/v1/redirect/**
-#          filters:
-#            - AddRequestHeader=X-API-KEY, test-ms-redirect
-#            - RewriteResponseBody=REGEX, (.*), "redirect:${body}"
-        - id: ms-delete
-          uri: http://localhost:8083
+        - id: ms-redirect
+          uri: lb://ms-redirect
           predicates:
-            - Path=/api/v1/delete/**
+            - Path=/api/v1/redirect/**, /actuator/redirect/**
+          filters:
+            - AddRequestHeader=X-API-KEY, test-ms-redirect
+        - id: ms-delete
+          uri: lb://ms-delete
+          predicates:
+            - Path=/api/v1/delete/**, /actuator/delete/**
           filters:
             - AddRequestHeader=X-API-KEY, test-ms-delete
         - id: ms-info
-          uri: http://localhost:8084
+          uri: lb://ms-info
           predicates:
-            - Path=/api/v1/info/**
+            - Path=/api/v1/info/**, /actuator/info/**
           filters:
             - AddRequestHeader=X-API-KEY, test-ms-info
         - id: ms-auth
-          uri: http://localhost:8085
+          uri: lb://ms-auth
           predicates:
-            - Path=/api/v1/auth/**
+            - Path=/api/v1/auth/**, /actuator/auth/**
           filters:
             - AddRequestHeader=X-API-KEY, test-ms-auth
         - id: ms-user
-          uri: http://localhost:8086
+          uri: lb://ms-user
           predicates:
-            - Path=/api/v1/user/**
+            - Path=/api/v1/user/**, /actuator/user/**
           filters:
             - AddRequestHeader=X-API-KEY, test-ms-user
-  redis:
-    host: localhost
-    port: 6379
-    password: redis
+        - id: discovery-server
+          uri: http://localhost:8761/actuator/discovery/**
+          predicates:
+            - Path=/actuator/discovery/**
+eureka:
+  client:
+    service-url:
+      default-zone: http://localhost:8761/eureka/
+  instance:
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
 config:
+  url: http://localhost
   application:
     cache:
       load-urls-in-cache: true
@@ -63,33 +69,24 @@ config:
         ms-info: test-ms-info
         ms-auth: test-ms-auth
         ms-user: test-ms-user
-  aws:
-    access-key: test
-    secret-key: test
-    region: us-east-1
-  dynamodb:
-    configure: true
-    endpoint: http://localhost:8000
-    region: us-west-1
-    access-key: test
-    secret-key: test
-    tables:
-      urls:
-        name: urls
-        read: 10
-        write: 10
-        indexes:
-          createdAt:
-            read: 5
-            write: 5
-          userid:
-            read: 10
-            write: 10
-      users:
-        name: users
-        read: 5
-        write: 5
-      stats:
-        name: stats
-        read: 5
-        write: 5
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+      base-path: /actuator
+  zipkin:
+    tracing:
+      endpoint: http://localhost:9411/api/v2/spans
+  tracing:
+    sampling:
+      probability: 1.0
+logging:
+  pattern:
+    level: "%5p [${spring.application.name}, %X{traceId:-}, %X{spanId:-}]"
+  level:
+    root: DEBUG
+    org.springframework.cloud.gateway: TRACE
+    org.springframework.cloud.gateway.route.RouteDefinitionRouteLocator: INFO
+    org.springframework.cloud: DEBUG
+    org.springframework.web.reactive.function.client: DEBUG

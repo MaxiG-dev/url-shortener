@@ -1,6 +1,8 @@
 package dev.maxig.api_gateway.controllers;
 
 import dev.maxig.api_gateway.config.WebClientConfig;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 import jakarta.annotation.PostConstruct;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
@@ -21,25 +23,39 @@ import java.net.URI;
 
 @RestController
 public class RedirectController {
+    @Value("${config.url}")
+    private String redirectUrl;
 
-    private final String msRedirectApiKey;
-    private final WebClient webClient;
+    @Value ("${config.application.x-api-key.ms-redirect}")
+    private String msRedirectApiKey;
+
+    private final ObservationRegistry observationRegistry;
+    private final WebClient.Builder webClientBuilder;
 
     @Autowired
-    public RedirectController(String msRedirectApiKey, WebClient webClient) {
-        this.msRedirectApiKey = msRedirectApiKey;
-        this.webClient = webClient;
+    public RedirectController(ObservationRegistry observationRegistry, WebClient.Builder webClientBuilder) {
+        this.observationRegistry = observationRegistry;
+        this.webClientBuilder = webClientBuilder;
     }
 
     @GetMapping("/{shortUrl}")
-    public Mono<ResponseEntity<Void>> redirect(@PathVariable String shortUrl) {
-        return webClient.get()
-                .uri("http://localhost:8081/api/v1/redirect/" + shortUrl)
-                .header("x-api-key", msRedirectApiKey)
-                .retrieve()
-                .bodyToMono(String.class)
-                .map(url -> ResponseEntity.status(303)
-                        .location(URI.create(url))
-                        .build());
+    public Mono<ResponseEntity<Object>> redirect(@PathVariable String shortUrl) {
+        Observation redirectObservation = Observation.createNotStarted("ms-redirect", observationRegistry);
+        return redirectObservation.observe(() -> {
+            if (shortUrl.contains("/")) {
+                return Mono.just(ResponseEntity.status(303).location(URI.create(redirectUrl + "page-not-found/404.html")).build());
+            }
+            return webClientBuilder.build().get()
+                    .uri("lb://ms-redirect" + "/api/v1/redirect/" + shortUrl)
+                    .header("x-api-key", msRedirectApiKey)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .map(url -> ResponseEntity.status(303)
+                            .location(URI.create(url))
+                            .build())
+                    .onErrorResume(e -> {
+                        return Mono.just(ResponseEntity.status(303).location(URI.create(redirectUrl + "/page-not-found/404.html")).build());
+                    });
+        });
     }
 }
