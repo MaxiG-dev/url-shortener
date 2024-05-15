@@ -8,6 +8,7 @@ import dev.maxig.ms_shorten.utils.ShortenUrl;
 import lombok.RequiredArgsConstructor;
 import org.apache.coyote.BadRequestException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +17,8 @@ import java.util.concurrent.CompletableFuture;
 @Service
 @RequiredArgsConstructor
 public class ShortenServiceImpl implements ShortenService {
+        @Value("${config.url}")
+        private String redirectUrl;
 
         @Autowired
         private final DynamoRepository dynamoRepository;
@@ -58,7 +61,8 @@ public class ShortenServiceImpl implements ShortenService {
 
                 redisRepository.save(shortUrl, longUrl);
                 redisRepository.deleteFromNotFoundedUrls(shortUrl);
-                future.complete(shortUrl);
+
+                future.complete(redirectUrl + "/" + shortUrl);
 
                 updateStats();
             } catch (Exception e) {

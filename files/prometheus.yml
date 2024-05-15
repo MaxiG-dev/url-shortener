@@ -1,0 +1,52 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+scrape_configs:
+  - job_name: 'discovery-server'
+    metrics_path: '/actuator/discovery/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:80']
+        labels:
+          application: 'Discovery Service'
+#  - job_name: 'ms-auth'
+#    metrics_path: '/actuator/api/v1/auth/prometheus'
+#    static_configs:
+#      - targets: ['host.docker.internal:80']
+#        labels:
+#          application: 'Auth Service'
+#  - job_name: 'ms-user'
+#    metrics_path: '/actuator/api/v1/user/prometheus'
+#    static_configs:
+#      - targets: ['host.docker.internal:80']
+#        labels:
+#          application: 'User Service'
+  - job_name: 'ms-shorten'
+    metrics_path: '/actuator/shorten/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:80']
+        labels:
+          application: 'Shorten Service'
+  - job_name: 'ms-redirect'
+    metrics_path: '/actuator/redirect/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:80']
+        labels:
+          application: 'Redirect Service'
+  - job_name: 'ms-delete'
+    metrics_path: '/actuator/delete/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:80']
+        labels:
+          application: 'Delete Service'
+  - job_name: 'ms-info'
+    metrics_path: '/actuator/info/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:80']
+        labels:
+          application: 'Info Service'
+#  - job_name: 'ms-core'
+#    metrics_path: '/actuator/core/prometheus'
+#    static_configs:
+#      - targets: [ 'host.docker.internal:80' ]
+#        labels:
+#          application: 'Core Service'

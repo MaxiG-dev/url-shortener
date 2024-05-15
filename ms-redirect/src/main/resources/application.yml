@@ -1,5 +1,5 @@
 server:
-  port: 8081
+  port: 0
   error:
     include-stacktrace: never
 spring:
@@ -9,6 +9,12 @@ spring:
     host: localhost
     port: 6379
     password: redis
+eureka:
+  client:
+    service-url:
+      default-zone: http://localhost:8761/eureka/
+  instance:
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
 config:
   application:
     x-api-key: test-ms-redirect
@@ -21,3 +27,20 @@ config:
     region: us-east-1
   dynamodb:
     endpoint: http://localhost:8000
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+      base-path: /actuator/redirect
+  zipkin:
+    tracing:
+      endpoint: http://localhost:9411/api/v2/spans
+  tracing:
+    sampling:
+      probability: 1.0
+logging:
+  pattern:
+    level: "%5p [${spring.application.name}, %X{traceId:-}, %X{spanId:-}]"
+  level:
+    root: DEBUG

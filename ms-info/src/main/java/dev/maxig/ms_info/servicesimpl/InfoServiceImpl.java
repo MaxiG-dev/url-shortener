@@ -55,8 +55,9 @@ public class InfoServiceImpl implements InfoService {
         return future;
     }
 
-
+    
     @Override
+    @Async("asyncExecutor")
     public CompletableFuture<Stats> getGlobalStats() {
         CompletableFuture<Stats> future = new CompletableFuture<>();
         try {

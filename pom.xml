@@ -34,6 +34,7 @@
 	</dependencyManagement>
 
 	<modules>
+		<module>discovery-server</module>
 		<module>api-gateway</module>
 		<module>ms-core</module>
 		<module>ms-shorten</module>

@@ -34,10 +34,12 @@ public class DeleteServiceImpl implements DeleteService {
 
             boolean urlExist = dynamoRepository.deleteUrlFromDynamoDB(shortUrl);
 
-            if (urlExist) {
-                redisRepository.delete("shortUrl");
+            if (!urlExist) {
+                redisRepository.saveNotFoundUrl(shortUrl);
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "URL not found");
             }
 
+            redisRepository.delete(shortUrl);
             redisRepository.saveNotFoundUrl(shortUrl);
             future.complete(null);
 

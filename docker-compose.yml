@@ -33,17 +33,51 @@ services:
       --slaveof redis-master 6379
       --appendonly yes
 
-    # ms-core Java application
-#  ms-core:
+  ### Zipkin
+  zipkin:
+    container_name: zipkin
+    image: openzipkin/zipkin:2.24.2
+    ports:
+      - "9411:9411"
+
+  ### Prometheus
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./files/prometheus.yml:/etc/prometheus/prometheus.yml
+
+  ### Grafana
+  grafana:
+    container_name: grafana
+    image: grafana/grafana-oss
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    links:
+      - prometheus
+    volumes:
+      - ./files/grafana:/var/lib/grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_SECURITY_ADMIN_USER: admin
+    depends_on:
+      - prometheus
+  # ms-shorten Java application
+#  ms-shorten:
 #    build:
-#      context: .
-#      dockerfile: "./ms-core/Dockerfile"
-#    container_name: ms-core
+#      context: ./ms-shorten
+#      dockerfile: Dockerfile
+#    container_name: ms-shorten
 #    depends_on:
 #      - dynamodb-local
 #      - redis-master-local
 #    ports:
-#      - "8080:8080"
+#      - "8082:8080"
 #    environment:
 #      - SPRING_DATASOURCE_URL=redis-master:6379
 #      - DYNAMODB_ENDPOINT=http://dynamodb-local:8000
