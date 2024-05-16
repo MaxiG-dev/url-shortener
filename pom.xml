@@ -34,15 +34,11 @@
 	</dependencyManagement>
 
 	<modules>
-		<module>discovery-server</module>
 		<module>api-gateway</module>
-		<module>ms-core</module>
 		<module>ms-shorten</module>
 		<module>ms-redirect</module>
 		<module>ms-delete</module>
 		<module>ms-info</module>
-		<module>ms-user</module>
-		<module>ms-auth</module>
 	</modules>
 	<build>
 	</build>

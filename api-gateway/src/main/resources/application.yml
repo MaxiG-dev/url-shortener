@@ -1,74 +1,41 @@
 server:
   port: 80
+config:
+  domain-to-redirect: http://localhost
+  # time in miliseconds
+  gateway-timeout: 15000
+  kafka-topics:
+    redirect:
+      request: redirect-request-topic
+      response: redirect-response-topic
+    shorten:
+      request: shorten-request-topic
+      response: shorten-response-topic
+    info:
+      request: info-request-topic
+      response: info-response-topic
+    delete:
+      request: delete-request-topic
+      response: delete-response-topic
 spring:
   application:
     name: api-gateway
   main:
     web-application-type: reactive
-  cloud:
-    gateway:
-      routes:
-        - id: ms-shorten
-          uri: lb://ms-shorten
-          predicates:
-            - Path=/api/v1/shorten/**, /actuator/shorten/**
-          filters:
-            - AddRequestHeader=X-API-KEY, test-ms-shorten
-        - id: ms-redirect
-          uri: lb://ms-redirect
-          predicates:
-            - Path=/api/v1/redirect/**, /actuator/redirect/**
-          filters:
-            - AddRequestHeader=X-API-KEY, test-ms-redirect
-        - id: ms-delete
-          uri: lb://ms-delete
-          predicates:
-            - Path=/api/v1/delete/**, /actuator/delete/**
-          filters:
-            - AddRequestHeader=X-API-KEY, test-ms-delete
-        - id: ms-info
-          uri: lb://ms-info
-          predicates:
-            - Path=/api/v1/info/**, /actuator/info/**
-          filters:
-            - AddRequestHeader=X-API-KEY, test-ms-info
-        - id: ms-auth
-          uri: lb://ms-auth
-          predicates:
-            - Path=/api/v1/auth/**, /actuator/auth/**
-          filters:
-            - AddRequestHeader=X-API-KEY, test-ms-auth
-        - id: ms-user
-          uri: lb://ms-user
-          predicates:
-            - Path=/api/v1/user/**, /actuator/user/**
-          filters:
-            - AddRequestHeader=X-API-KEY, test-ms-user
-        - id: discovery-server
-          uri: http://localhost:8761/actuator/discovery/**
-          predicates:
-            - Path=/actuator/discovery/**
-eureka:
-  client:
-    service-url:
-      default-zone: http://localhost:8761/eureka/
-  instance:
-    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
-config:
-  url: http://localhost
-  application:
-    cache:
-      load-urls-in-cache: true
-      # time in minutes
-      urls-expire-time: 720
-      save-urls-limit: 20000
-    x-api-key:
-        ms-shorten: test-ms-shorten
-        ms-redirect: test-ms-redirect
-        ms-delete: test-ms-delete
-        ms-info: test-ms-info
-        ms-auth: test-ms-auth
-        ms-user: test-ms-user
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      retries: 5
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    request:
+      timeout: ${config.gateway-timeout}
+      compression-type: snappy
+      buffer-memory: 33554432
+    consumer:
+      group-id: gateway-listener
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
 management:
   endpoints:
     web:
@@ -85,8 +52,8 @@ logging:
   pattern:
     level: "%5p [${spring.application.name}, %X{traceId:-}, %X{spanId:-}]"
   level:
-    root: DEBUG
-    org.springframework.cloud.gateway: TRACE
-    org.springframework.cloud.gateway.route.RouteDefinitionRouteLocator: INFO
-    org.springframework.cloud: DEBUG
-    org.springframework.web.reactive.function.client: DEBUG
+    root: INFO
+#    org.springframework.cloud.gateway: TRACE
+#    org.springframework.cloud.gateway.route.RouteDefinitionRouteLocator: INFO
+#    org.springframework.cloud: DEBUG
+#    org.springframework.web.reactive.function.client: DEBUG

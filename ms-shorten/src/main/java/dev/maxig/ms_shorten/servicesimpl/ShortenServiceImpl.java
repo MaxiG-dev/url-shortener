@@ -75,6 +75,7 @@ public class ShortenServiceImpl implements ShortenService {
         protected void updateStats() {
             CompletableFuture.runAsync(() -> {
                 try {
+                    redisRepository.updateUrlsCount();
                     dynamoRepository.updateStats();
                 } catch (Exception e) {
                     System.err.println("Failed to update stats: " + e.getMessage());

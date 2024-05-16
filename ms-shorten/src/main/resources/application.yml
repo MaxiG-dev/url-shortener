@@ -9,12 +9,19 @@ spring:
     host: localhost
     port: 6379
     password: redis
-eureka:
-  client:
-    service-url:
-      default-zone: http://localhost:8761/eureka/
-  instance:
-    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      retries: 5
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    request:
+      compression-type: snappy
+      buffer-memory: 33554432
+    consumer:
+      group-id: shorten-listener
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
 config:
   url: http://localhost
   application:
@@ -29,6 +36,10 @@ config:
     region: us-east-1
   dynamodb:
     endpoint: http://localhost:8000
+  kafka-topics:
+    shorten:
+      request: shorten-request-topic
+      response: shorten-response-topic
 management:
   endpoints:
     web:
@@ -45,4 +56,4 @@ logging:
   pattern:
     level: "%5p [${spring.application.name}, %X{traceId:-}, %X{spanId:-}]"
   level:
-    root: DEBUG
+    root: INFO

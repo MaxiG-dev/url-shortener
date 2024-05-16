@@ -27,4 +27,8 @@ public class RedisRepository {
         redisTemplate.opsForValue().getAndDelete("notFoundedUrl-(" + key + ")");
     }
 
+    public void updateUrlsCount() {
+        redisTemplate.opsForHash().increment("globalStats-()", "urlsCount", 1);
+    }
+
 }

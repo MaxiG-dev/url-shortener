@@ -21,5 +21,6 @@ public class RedisRepository {
 
     public void delete(String key) {
         redisTemplate.opsForValue().getAndDelete(key);
+        redisTemplate.opsForHash().delete("completeUrl-(" + key + ")", "longUrl", "userId", "accessCount", "createdAt", "updatedAt", "deletedAt");
     }
 }

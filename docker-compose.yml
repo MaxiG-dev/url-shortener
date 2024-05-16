@@ -2,14 +2,15 @@ version: '3.8'
 services:
   # Dynamo DB local
   dynamodb-local:
-    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath ./data"
     image: "amazon/dynamodb-local:latest"
     container_name: dynamodb-local
     ports:
       - "8000:8000"
     volumes:
       - "./docker/dynamodb:/home/dynamodblocal/data"
+      - "./docker/scripts:/docker-entrypoint-initdb.d"
     working_dir: /home/dynamodblocal
+    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath ./data"
 
   # Redis local
   redis-master-local:
@@ -19,7 +20,7 @@ services:
       - "./docker/redis:/data"
     ports:
       - "6379:6379"
-    command: redis-server --appendonly yes
+    command: redis-server
     environment:
       - REDIS_PASSWORD=redis
       - REDIS_REPLICATION_MASTER_PORT=6379
@@ -31,12 +32,11 @@ services:
     command: >
       redis-server
       --slaveof redis-master 6379
-      --appendonly yes
 
   ### Zipkin
   zipkin:
     container_name: zipkin
-    image: openzipkin/zipkin:2.24.2
+    image: openzipkin/zipkin
     ports:
       - "9411:9411"
 
@@ -67,17 +67,46 @@ services:
       GF_SECURITY_ADMIN_USER: admin
     depends_on:
       - prometheus
-  # ms-shorten Java application
-#  ms-shorten:
-#    build:
-#      context: ./ms-shorten
-#      dockerfile: Dockerfile
-#    container_name: ms-shorten
+
+  ## Zookeeper
+  zookeeper:
+    container_name: zookeeper
+    image: confluentinc/cp-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  ### Kafka
+  kafka:
+    container_name: kafka
+    image: confluentinc/cp-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+#  init-kafka:
+#    network_mode: "service:kafka"
+#    image: confluentinc/cp-kafka
 #    depends_on:
-#      - dynamodb-local
-#      - redis-master-local
-#    ports:
-#      - "8082:8080"
-#    environment:
-#      - SPRING_DATASOURCE_URL=redis-master:6379
-#      - DYNAMODB_ENDPOINT=http://dynamodb-local:8000
+#      - kafka
+#    entrypoint: [ '/bin/sh', '-c' ]
+#    command: |
+#      "
+#      kafka-topics --bootstrap-server kafka:9092 --list
+#
+#      # create init topics
+#      kafka-topics --create --partitions 2 --bootstrap-server kafka:9092 --topic redirect-request-topic
+#      kafka-topics --create --partitions 2 --bootstrap-server kafka:9092 --topic redirect-response-topic
+#      kafka-topics --create --partitions 2 --bootstrap-server kafka:9092 --topic shorten-request-topic
+#      kafka-topics --create --partitions 2 --bootstrap-server kafka:9092 --topic shorten-response-topic
+#      kafka-topics --create --partitions 2 --bootstrap-server kafka:9092 --topic info-request-topic
+#      kafka-topics --create --partitions 2 --bootstrap-server kafka:9092 --topic info-response-topic
+#      kafka-topics --create --partitions 2 --bootstrap-server kafka:9092 --topic delete-request-topic
+#      kafka-topics --create --partitions 2 --bootstrap-server kafka:9092 --topic delete-response-topic
+#      "

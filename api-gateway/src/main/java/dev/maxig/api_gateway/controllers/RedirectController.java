@@ -1,60 +1,84 @@
 package dev.maxig.api_gateway.controllers;
 
-import dev.maxig.api_gateway.config.WebClientConfig;
+import dev.maxig.api_gateway.events.requests.RedirectRequestEvent;
+import dev.maxig.api_gateway.services.EventService;
+import dev.maxig.api_gateway.utils.JsonUtils;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
-import jakarta.annotation.PostConstruct;
-import lombok.AllArgsConstructor;
-import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
-import org.springframework.web.reactive.result.view.RedirectView;
 import reactor.core.publisher.Mono;
 
 import java.net.URI;
-
-
+import java.time.Duration;
+import java.util.UUID;
+import java.util.concurrent.TimeoutException;
 
 @RestController
+@Slf4j
 public class RedirectController {
-    @Value("${config.url}")
-    private String redirectUrl;
 
-    @Value ("${config.application.x-api-key.ms-redirect}")
-    private String msRedirectApiKey;
+    @Value("${config.domain-to-redirect}")
+    private String domainToRedirect;
+
+    @Value("${config.gateway-timeout}")
+    private Long gatewayTimeout;
+
+    @Value("${config.kafka-topics.redirect.request}")
+    private String redirectRequestTopic;
 
     private final ObservationRegistry observationRegistry;
-    private final WebClient.Builder webClientBuilder;
+    private final KafkaTemplate<String, String> kafkaTemplate;
+    private final EventService eventService;
 
     @Autowired
-    public RedirectController(ObservationRegistry observationRegistry, WebClient.Builder webClientBuilder) {
+    public RedirectController(ObservationRegistry observationRegistry, KafkaTemplate<String, String> kafkaTemplate, EventService eventService) {
         this.observationRegistry = observationRegistry;
-        this.webClientBuilder = webClientBuilder;
+        this.kafkaTemplate = kafkaTemplate;
+        this.eventService = eventService;
     }
 
     @GetMapping("/{shortUrl}")
     public Mono<ResponseEntity<Object>> redirect(@PathVariable String shortUrl) {
-        Observation redirectObservation = Observation.createNotStarted("ms-redirect", observationRegistry);
-        return redirectObservation.observe(() -> {
+        String traceId = UUID.randomUUID().toString();
+        return Mono.deferContextual(contextView -> {
+            Observation redirectObservation = Observation.createNotStarted("ms-redirect", observationRegistry)
+                                                         .lowCardinalityKeyValue("traceId", traceId)
+                                                         .start();
+
             if (shortUrl.contains("/")) {
-                return Mono.just(ResponseEntity.status(303).location(URI.create(redirectUrl + "page-not-found/404.html")).build());
+                redirectObservation.stop();
+                return Mono.just(ResponseEntity.status(303).location(URI.create(domainToRedirect + "/page-not-found/404.html")).build());
             }
-            return webClientBuilder.build().get()
-                    .uri("lb://ms-redirect" + "/api/v1/redirect/" + shortUrl)
-                    .header("x-api-key", msRedirectApiKey)
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .map(url -> ResponseEntity.status(303)
-                            .location(URI.create(url))
-                            .build())
-                    .onErrorResume(e -> {
-                        return Mono.just(ResponseEntity.status(303).location(URI.create(redirectUrl + "/page-not-found/404.html")).build());
+
+            kafkaTemplate.send(redirectRequestTopic, traceId, JsonUtils.toJson(new RedirectRequestEvent(shortUrl, traceId)));
+
+            return Mono.fromFuture(eventService.createPendingRedirectRequest(traceId))
+                    .timeout(Duration.ofMillis(gatewayTimeout))
+                    .map(response -> {
+                        if (response.contains("404")) {
+                            redirectObservation.stop();
+                            return ResponseEntity.status(303).location(URI.create(domainToRedirect + "/page-not-found/404.html")).build();
+                        }
+                        redirectObservation.stop();
+                        return ResponseEntity.status(HttpStatus.SEE_OTHER).location(URI.create(response)).build();
+                    })
+                    .onErrorResume(TimeoutException.class, ex -> {
+                        eventService.removeRedirectRequest(traceId);
+                        redirectObservation.stop();
+                        return Mono.just(ResponseEntity.status(504).body(("Timeout waiting for response")));
+                    })
+                    .onErrorResume(Exception.class, ex -> {
+                        eventService.removeRedirectRequest(traceId);
+                        redirectObservation.stop();
+                        return Mono.just(ResponseEntity.status(500).body("Internal Server Error, please try again later or contact support."));
                     });
         });
     }

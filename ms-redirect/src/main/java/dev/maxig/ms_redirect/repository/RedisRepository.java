@@ -30,4 +30,9 @@ public class RedisRepository {
     public Object getNotFoundUrl(String key) {
         return redisTemplate.opsForValue().get("notFoundedUrl-(" + key + ")");
     }
+
+    public void updateUrlsRedirectCount(String key) {
+        redisTemplate.opsForHash().increment("completeUrl-(" + key + ")", "accessCount", 1);
+        redisTemplate.opsForHash().increment("globalStats-()", "urlsRedirect", 1);
+    }
 }

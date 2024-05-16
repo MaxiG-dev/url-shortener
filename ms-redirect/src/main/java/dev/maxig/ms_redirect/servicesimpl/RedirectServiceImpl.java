@@ -5,10 +5,8 @@ import dev.maxig.ms_redirect.repository.RedisRepository;
 import dev.maxig.ms_redirect.services.RedirectService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -36,7 +34,7 @@ public class RedirectServiceImpl implements RedirectService {
 
             Object notFoundUrl = redisRepository.getNotFoundUrl(shortUrl);
             if (notFoundUrl != null) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "URL not found");
+                future.complete("404");
             }
 
             String DynamoUrl = dynamoRepository.getLongUrlFromDynamoDB(shortUrl);
@@ -48,7 +46,7 @@ public class RedirectServiceImpl implements RedirectService {
             }
 
             redisRepository.saveNotFoundUrl(shortUrl);
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "URL not found");
+            future.complete("404");
         } catch (Exception e) {
             future.completeExceptionally(e);
         }
@@ -59,6 +57,7 @@ public class RedirectServiceImpl implements RedirectService {
     protected void updateUrlCount(String shortUrl) {
         CompletableFuture.runAsync(() -> {
             try {
+                redisRepository.updateUrlsRedirectCount(shortUrl);
                 dynamoRepository.updateUrlCountFromDynamoDB(shortUrl);
             } catch (Exception e) {
                 System.err.println("Failed to save URL to DynamoDB: " + e.getMessage());
