@@ -1,0 +1,55 @@
+server:
+  port: 0
+  error:
+    include-stacktrace: never
+spring:
+  application:
+    name: ms-sync
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      retries: 5
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    request:
+      compression-type: snappy
+      buffer-memory: 33554432
+    consumer:
+      group-id: sync-listener
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+config:
+  url: http://localhost
+  application:
+    x-api-key: test-ms-sync
+    cache:
+      # time in minutes
+      urls-expire-time: 720
+      save-urls-limit: 20000
+  aws:
+    access-key: test
+    secret-key: test
+    region: us-east-1
+  dynamodb:
+    endpoint: http://localhost:8000
+  kafka-topics:
+    sync:
+      request: sync-request-topic
+      response: sync-response-topic
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+      base-path: /actuator/sync
+  zipkin:
+    tracing:
+      endpoint: http://localhost:9411/api/v2/spans
+  tracing:
+    sampling:
+      probability: 1.0
+logging:
+  pattern:
+    level: "%5p [${spring.application.name}, %X{traceId:-}, %X{spanId:-}]"
+  level:
+    root: INFO

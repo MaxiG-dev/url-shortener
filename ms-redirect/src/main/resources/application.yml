@@ -38,6 +38,8 @@ config:
     redirect:
       request: redirect-request-topic
       response: redirect-response-topic
+    sync:
+      request: sync-request-topic
 management:
   endpoints:
     web:

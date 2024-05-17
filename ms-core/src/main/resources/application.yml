@@ -1,0 +1,62 @@
+server:
+  port: 80
+config:
+  domain-to-redirect: http://localhost
+  # time in miliseconds
+  response-timeout: 15000
+  kafka-topics:
+    redirect:
+      request: redirect-request-topic
+      response: redirect-response-topic
+    shorten:
+      request: shorten-request-topic
+      response: shorten-response-topic
+    info:
+      request: info-request-topic
+      response: info-response-topic
+    delete:
+      request: delete-request-topic
+      response: delete-response-topic
+    sync:
+      request: sync-request-topic
+      response: sync-response-topic
+spring:
+  application:
+    name: ms-core
+  main:
+    web-application-type: reactive
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      retries: 5
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    request:
+      timeout: ${config.response-timeout}
+      compression-type: snappy
+      buffer-memory: 33554432
+    consumer:
+      group-id: core-listener
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+      base-path: /actuator
+  zipkin:
+    tracing:
+      endpoint: http://localhost:9411/api/v2/spans
+  tracing:
+    sampling:
+      probability: 1.0
+logging:
+  pattern:
+    level: "%5p [${spring.application.name}, %X{traceId:-}, %X{spanId:-}]"
+  level:
+    root: INFO
+#    org.springframework.cloud.gateway: TRACE
+#    org.springframework.cloud.gateway.route.RouteDefinitionRouteLocator: INFO
+#    org.springframework.cloud: DEBUG
+#    org.springframework.web.reactive.function.client: DEBUG

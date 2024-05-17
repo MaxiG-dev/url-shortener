@@ -5,8 +5,6 @@ import dev.maxig.ms_info.entities.Url;
 import dev.maxig.ms_info.repository.DynamoRepository;
 import dev.maxig.ms_info.repository.RedisRepository;
 import dev.maxig.ms_info.services.InfoService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -16,14 +14,16 @@ import java.util.HashMap;
 import java.util.concurrent.CompletableFuture;
 
 @Service
-@RequiredArgsConstructor
 public class InfoServiceImpl implements InfoService {
 
-    @Autowired
     private final DynamoRepository dynamoRepository;
 
-    @Autowired
     private final RedisRepository redisRepository;
+
+    public InfoServiceImpl(DynamoRepository dynamoRepository, RedisRepository redisRepository) {
+        this.dynamoRepository = dynamoRepository;
+        this.redisRepository = redisRepository;
+    }
 
     @Override
     @Async("asyncExecutor")

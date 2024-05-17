@@ -51,8 +51,8 @@ public class RedisRepository {
                     .createdAt(Long.valueOf(createdAt.toString()))
                     .updatedAt(Long.valueOf(updatedAt.toString()))
                     .deletedAt(Long.valueOf(deletedAt.toString()))
-                    .build();}
-        catch (Exception e) {
+                    .build();
+        } catch (Exception e) {
             return null;
         }
 

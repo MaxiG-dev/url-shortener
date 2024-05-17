@@ -1,4 +1,5 @@
 package dev.maxig.ms_shorten.utils;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 

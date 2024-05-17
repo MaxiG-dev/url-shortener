@@ -1,21 +1,21 @@
 package dev.maxig.ms_info.controllers;
 
-import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
-
-import dev.maxig.ms_info.services.InfoService;
 import dev.maxig.ms_info.entities.Stats;
+import dev.maxig.ms_info.services.InfoService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest
 public class InfoControllerTest {
@@ -31,7 +31,7 @@ public class InfoControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new InfoController();
+        controller = new InfoController(service);
         MockitoAnnotations.openMocks(this);
     }
 

@@ -6,8 +6,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class MsRedirectApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(MsRedirectApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(MsRedirectApplication.class, args);
+    }
 
 }

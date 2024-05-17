@@ -61,7 +61,7 @@ public class DynamoRepository {
         Map<String, AttributeValueUpdate> attributeUpdates = new HashMap<>();
         attributeUpdates.put("deletedAt", AttributeValueUpdate.builder().value(AttributeValue.builder().n(String.valueOf(System.currentTimeMillis())).build()).build());
 
-       dynamoDbClient.updateItem(
+        dynamoDbClient.updateItem(
                 UpdateItemRequest.builder()
                         .tableName("urls")
                         .key(key)

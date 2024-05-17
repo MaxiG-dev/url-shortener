@@ -1,10 +1,9 @@
 package dev.maxig.ms_delete.servicesimpl;
 
-import dev.maxig.ms_delete.services.DeleteService;
 import dev.maxig.ms_delete.repository.DynamoRepository;
 import dev.maxig.ms_delete.repository.RedisRepository;
+import dev.maxig.ms_delete.services.DeleteService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -13,14 +12,15 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.concurrent.CompletableFuture;
 
 @Service
-@RequiredArgsConstructor
 public class DeleteServiceImpl implements DeleteService {
 
-    @Autowired
     private final DynamoRepository dynamoRepository;
-
-    @Autowired
     private final RedisRepository redisRepository;
+
+    public DeleteServiceImpl(DynamoRepository dynamoRepository, RedisRepository redisRepository) {
+        this.dynamoRepository = dynamoRepository;
+        this.redisRepository = redisRepository;
+    }
 
     @Override
     @Async("asyncExecutor")
